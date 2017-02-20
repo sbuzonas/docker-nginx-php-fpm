@@ -23,6 +23,7 @@ ENV SUPERVISOR_VERSION=3.3.0
 RUN apk add --no-cache \
     	ca-certificates \
 	curl \
+	py-pip \
         python=$PYTHON_VERSION \
 	tar \
 	xz && \
