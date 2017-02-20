@@ -10,12 +10,9 @@ LABEL com.fancyguy.os.flavor="linux" \
 
 # Changing the version should rebuild everything
 ENV PHP_VERSION="7.1.2" \
-    PHP_PREFIX="/usr/local"
-#    PHP_PREFIX="/opt/php"
-#ENV PHP_INI_DIR="$PHP_PREFIX/etc" \
-#    PHP_SOURCES="$PHP_PREFIX/src"
-ENV PHP_INI_DIR="$PHP_PREFIX/etc/php" \
-    PHP_SOURCES="$PHP_PREFIX/src/php"
+    PHP_PREFIX="/opt/php"
+ENV PHP_INI_DIR="$PHP_PREFIX/etc" \
+    PHP_SOURCES="$PHP_PREFIX/src"
 ENV PHP_DEFAULT_SCAN_DIR="$PHP_INI_DIR/conf.d"
 
 # Build everything except for PHP
@@ -73,8 +70,8 @@ RUN apk add --no-cache --update --virtual .fetch-deps \
 ## Linker Options
 # Enable optimization
 # Add GNU HASH segments (faster than sysv)
-ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2" PHP_CPPFLAGS="$PHP_CFLAGS" PHP_LDFLAGS="-Wl,-O1 -Wl,--hash-style=both -pie"
-#ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -funswitch-loops -fpredictive-commoning -Os -pipe" PHP_CPPFLAGS="$PHP_CFLAGS" PHP_LDFLAGS="-Wl,-O1 -Wl,--hash-style=both -pie"
+ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -Os -funswitch-loops -fpredictive-commoning -fprefetch-loop-arrays" PHP_CPPFLAGS="$PHP_CFLAGS" PHP_LDFLAGS="-Wl,-O1 -Wl,--hash-style=both -pie"
+
 # Configure args
 ENV PHP_EXTRA_CONFIGURE_ARGS=""
 
@@ -178,8 +175,6 @@ RUN mkdir -p $PHP_SOURCES && \
     make install && \
     echo "==> Stripping symbols..." && \
     { find $PHP_PREFIX/bin $PHP_PREFIX/sbin -type f -perm +0111 -exec strip --strip-all '{}' + || true; } && \
-    echo "==> Testing installation..." && \
-    make test && \
     echo "==> Cleaning up..." && \
     make clean && \
     cd $PHP_PREFIX && \
