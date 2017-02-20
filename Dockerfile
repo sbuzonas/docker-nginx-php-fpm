@@ -70,7 +70,7 @@ RUN apk add --no-cache --update --virtual .fetch-deps \
 ## Linker Options
 # Enable optimization
 # Add GNU HASH segments (faster than sysv)
-ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -Os -funswitch-loops -fpredictive-commoning -fprefetch-loop-arrays" PHP_CPPFLAGS="$PHP_CFLAGS" PHP_LDFLAGS="-Wl,-O1 -Wl,--hash-style=both -pie"
+ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -Os -funswitch-loops -fpredictive-commoning" PHP_CPPFLAGS="$PHP_CFLAGS" PHP_LDFLAGS="-Wl,-O1 -Wl,--hash-style=both -pie"
 
 # Configure args
 ENV PHP_EXTRA_CONFIGURE_ARGS=""
@@ -173,6 +173,8 @@ RUN mkdir -p $PHP_SOURCES && \
     make -j${NPROC} && \
     echo "==> Installing PHP..." && \
     make install && \
+    ln -sf $PHP_PREFIX/bin/php /usr/local/bin/php && \
+    ln -sf $PHP_PREFIX/sbin/php-fpm /usr/local/sbin/php-fpm && \
     echo "==> Stripping symbols..." && \
     { find $PHP_PREFIX/bin $PHP_PREFIX/sbin -type f -perm +0111 -exec strip --strip-all '{}' + || true; } && \
     echo "==> Cleaning up..." && \
