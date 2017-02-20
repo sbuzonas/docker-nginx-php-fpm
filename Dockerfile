@@ -8,22 +8,31 @@ LABEL com.fancyguy.os.flavor="linux" \
       com.fancyguy.frontend="nginx" \
       com.fancyguy.backend="php-fpm"
 
-# Changing the version should rebuild everything
+# Changing any of these should rebuild everything
 ENV PHP_VERSION="7.1.2" \
     PHP_PREFIX="/opt/php"
 ENV PHP_INI_DIR="$PHP_PREFIX/etc" \
     PHP_SOURCES="$PHP_PREFIX/src"
 ENV PHP_DEFAULT_SCAN_DIR="$PHP_INI_DIR/conf.d"
 
+ENV DUMB_INIT_VERSION=1.1.2
+ENV PYTHON_VERSION=2.7.12-r0
+ENV SUPERVISOR_VERSION=3.3.0
+
 # Build everything except for PHP
-RUN addgroup -g 82 -S www-data && \
-    adduser -u 82 -D -S -G www-data www-data && \
-    # 82 is the standard uid/gid for "www-data" in Alpine
-    apk add --no-cache --update --virtual .container-deps \
+RUN apk add --no-cache \
     	ca-certificates \
 	curl \
+        python=$PYTHON_VERSION \
 	tar \
 	xz && \
+    pip install --no-cache-dir supervisor==$SUPERVISOR_VERSION && \
+    mkdir -p /usr/local/sbin && \
+    wget -O /usr/local/sbin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v${DUMB_INIT_VERSION}/dumb-init_${DUMB_INIT_VERSION}_amd64 && \
+    chmod +x /usr/local/bin/dumb-init && \
+    addgroup -g 82 -S www-data && \
+    adduser -u 82 -D -S -G www-data www-data && \
+    # 82 is the standard uid/gid for "www-data" in Alpine
     rm -rf /var/cache/apk/*
 
 ### Sources
@@ -36,7 +45,7 @@ ENV PHP_URL="https://secure.php.net/get/php-${PHP_VERSION}.tar.xz/from/this/mirr
     PHP_GPG_KEYS="A917B1ECDA84AEC2B568FED6F50ABC807BD5DCD0 528995BFEDFBA7191D46839EF9BA0ADA31CBD89E"
 
 # Fetch and verify
-RUN apk add --no-cache --update --virtual .fetch-deps \
+RUN apk add --no-cache --virtual .fetch-deps \
         gnupg \
 	openssl && \
     mkdir -p $PHP_PREFIX && \
@@ -89,8 +98,8 @@ ENV PHPIZE_DEPS \
 
 RUN mkdir -p $PHP_SOURCES && \
     tar -Jxf $PHP_PREFIX/php.tar.xz -C $PHP_SOURCES --strip-components=1 && \
-    mkdir -p $PHP_DEFAULT_SCAN_DIR/conf.d && \
-    apk add --no-cache --update --virtual .build-deps \
+    mkdir -p $PHP_DEFAULT_SCAN_DIR && \
+    apk add --no-cache --virtual .build-deps \
     	$PHPIZE_DEPS \
 	bzip2-dev \
 	curl-dev \
@@ -117,7 +126,7 @@ RUN mkdir -p $PHP_SOURCES && \
     ./configure \
         --prefix=$PHP_PREFIX \
         --with-config-file-path="$PHP_INI_DIR" \
-	--with-config-file-scan-dir="$PHP_INI_DIR/conf.d" \
+	--with-config-file-scan-dir="$PHP_DEFAULT_SCAN_DIR" \
 	\
 	--disable-cgi \
 	--enable-fpm \
@@ -191,3 +200,10 @@ RUN mkdir -p $PHP_SOURCES && \
     apk add --no-cache --virtual .php-rundeps $runtimeDeps && \
     apk del .build-deps && \
     rm -rf /var/cache/apk/*
+
+EXPOSE 80 443
+WORKDIR $PHP_PREFIX/
+
+COPY supervisord.conf /etc/supervisord.conf
+
+CMD ["dumb-init", "supervisord", "-c", "/etc/supervisord.conf"]
