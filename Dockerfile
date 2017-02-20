@@ -15,22 +15,23 @@ ENV PHP_INI_DIR="$PHP_PREFIX/etc" \
     PHP_SOURCES="$PHP_PREFIX/src"
 ENV PHP_DEFAULT_SCAN_DIR="$PHP_INI_DIR/conf.d"
 
-ENV DUMB_INIT_VERSION=1.1.2
-ENV PYTHON_VERSION=2.7.12-r0
-ENV SUPERVISOR_VERSION=3.3.0
+ENV DUMB_INIT_VERSION=1.2.0
 
 # Build everything except for PHP
-RUN apk add --no-cache \
+RUN apk add --no-cache --update \
     	ca-certificates \
 	curl \
+	openssl \
 	py-pip \
-        python=$PYTHON_VERSION \
+        python \
 	tar \
 	xz && \
-    pip install --no-cache-dir supervisor==$SUPERVISOR_VERSION && \
+    update-ca-certificates && \
+    pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir supervisor && \
     mkdir -p /usr/local/sbin && \
-    wget -O /usr/local/sbin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v${DUMB_INIT_VERSION}/dumb-init_${DUMB_INIT_VERSION}_amd64 && \
-    chmod +x /usr/local/bin/dumb-init && \
+    wget -O /usr/local/sbin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v$DUMB_INIT_VERSION/dumb-init_${DUMB_INIT_VERSION}_amd64 && \
+    chmod +x /usr/local/sbin/dumb-init && \
     addgroup -g 82 -S www-data && \
     adduser -u 82 -D -S -G www-data www-data && \
     # 82 is the standard uid/gid for "www-data" in Alpine
